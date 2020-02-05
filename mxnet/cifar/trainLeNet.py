@@ -2,24 +2,24 @@
 import mxnet as mx 
 import numpy as np
 import cv2
-import cPickle
+import pickle
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
 def extractImagesAndLabels(path, file):
     f = open(path+file, 'rb')
-    dict = cPickle.load(f)
-    images = dict['data']
+    dict = pickle.load(f, encoding='bytes')
+    images = dict[b'data']
     images = np.reshape(images, (10000, 3, 32, 32))
-    labels = dict['labels']
+    labels = dict[b'labels']
     imagearray = mx.nd.array(images)
     labelarray = mx.nd.array(labels)
     return imagearray, labelarray
 
 def extractCategories(path, file):
     f = open(path+file, 'rb')
-    dict = cPickle.load(f)
+    dict = pickle.load(f)
     return dict['label_names'] 
 
 def saveCifarImage(array, path, file):
@@ -58,8 +58,8 @@ for f in ("data_batch_2", "data_batch_3", "data_batch_4", "data_batch_5"):
     training_data = mx.nd.concatenate([training_data, imgarray])
     training_label = mx.nd.concatenate([training_label, lblarray])
 
-print training_data.shape    
-print training_label.shape    
+print(training_data.shape)
+print(training_label.shape)
 
 train_iter = mx.io.NDArrayIter(data=training_data,label=training_label,batch_size=batch)
 
@@ -67,7 +67,8 @@ valid_data, valid_label = extractImagesAndLabels(path, "test_batch")
 valid_iter = mx.io.NDArrayIter(data=valid_data,label=valid_label,batch_size=batch)
 
 lenet = buildLeNet()
-mod = mx.mod.Module(lenet, context=(mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)))
+#mod = mx.mod.Module(lenet, context=(mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)))
+mod = mx.mod.Module(lenet, context=(mx.cpu(0)))
 mod.bind(data_shapes=train_iter.provide_data, label_shapes=train_iter.provide_label)
 mod.init_params(initializer=mx.init.Xavier(magnitude=2.))
 mod.init_optimizer(optimizer='adagrad')
